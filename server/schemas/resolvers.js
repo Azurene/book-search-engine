@@ -1,10 +1,9 @@
 const { AuthenticationError } = require('apollo-server-express');
-const { User, Book } = require('../models');
+const { User } = require('../models');
 const { signToken } = require('../utils/auth');
 
 const resolvers = {
   Query: {
-    // me: which returns a User type
     me: async (parent, args, context) => {
       if (context.user) {
         const userData = await User.findOne({ _id: context.user._id })
@@ -14,14 +13,25 @@ const resolvers = {
       }
 
       throw new AuthenticationError('Not logged in.');
-    }
+    },
+
+    // getSingleUser: async (parent, {user = null, args }) => {
+    //   const foundUser = await User.findOne({
+    //     $or: [{ _id: user ? user._id : args.id }, { username: args.username }],
+    //   })
+    //     .select('-__v -password');
+
+    //   if (!foundUser) {
+    //     return AuthenticationError('Cannot find a user with this id!')
+    //   }
+
+    //   return foundUser;
+    // }
   },
+  
   Mutation: {
-    // login
-    // accepts email and password
-    // returns Auth type
-    login: async (parent, { email, password }) => {
-      const user = await User.findOne({ email });
+    login: async (parent, { body }) => {
+      const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
 
       if (!user) {
         throw new AuthenticationError("Can't find this user.");
@@ -36,9 +46,7 @@ const resolvers = {
       const token = signToken(user);
       return { token, user };
     },
-    // addUser
-    // accepts username, email, and password as parameters
-    // returns Auth type
+
     addUser: async (parent, args) => {
       const user = await User.create(args);
 
@@ -48,31 +56,27 @@ const resolvers = {
 
       const token = signToken(user);
       return { token, user };
-    }
-    // saveBook
-    // accepts a book author's array, description, title, bookId, image, and link
-    // returns User type
-    // look into creating an input type to handle these parameters
-    
-    // removeBook
-    // accepts a book's bookId as a parameter
-    // returns a User type
-    // User
-    // _id
-    // username
-    // email
-    // bookCount
-    // savedBooks (array of Book type)
-    // Book
-    // bookId (not _id, but the book's id from Google's Book api)
-    // authors: array of strings
-    // description
-    // title
-    // image
-    // link
-    // Auth
-    // token
-    // user (references User type)
+    },
+
+    // saveBook: async (parent, args) => {
+    //   console.log(args);
+    //   return;
+    //   // try {
+    //   //   const updatedUser = await User.findOneAndUpdate(
+    //   //     { _id: user._id },
+    //   //     { $addToSet: { savedBooks: body } },
+    //   //     { new: true, runValidators: true }
+    //   //   );
+    //   //   return updatedUser;
+    //   // } catch (err) {
+    //   //   console.log(err);
+    //   //   return new AuthenticationError("Something went wrong!");
+    //   // }
+    // },
+    // removeBook: async (parent, args) => {
+    //   console.log(args);
+    //   return;
+    // },
   }
 }
 
